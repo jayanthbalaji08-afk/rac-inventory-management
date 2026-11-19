@@ -1,0 +1,6 @@
+# Supabase CLI local link data
+supabase/.temp/
+supabase/.branches/
+.env
+.env.*
+node_modules/

@@ -1,0 +1,31 @@
+# Supabase CLI config — only used for local development (`supabase start`)
+# and for `supabase db push` / `supabase functions deploy`.
+# The hosted project's settings are set in the Supabase dashboard (see README.md).
+project_id = "rac-inventory"
+
+[auth]
+site_url = "https://effulgent-starburst-7588dc.netlify.app"
+additional_redirect_urls = ["https://effulgent-starburst-7588dc.netlify.app", "https://effulgent-starburst-7588dc.netlify.app/**"]
+
+[auth.email]
+enabled = true
+enable_confirmations = true
+
+[functions.notify-email]
+verify_jwt = true
+
+# Login / confirmation / password-reset emails go out through Gmail.
+# The password is never stored here: it is read from the SMTP_PASS environment variable at push time.
+[auth.email.smtp]
+enabled = true
+host = "smtp.gmail.com"
+port = 465
+user = "jayanthbalaji08@gmail.com"
+pass = "env(SMTP_PASS)"
+admin_email = "jayanthbalaji08@gmail.com"
+sender_name = "Robotics and Automation Club"
+
+# Supabase's default is only 2 auth emails per hour. Gmail allows ~500/day.
+[auth.rate_limit]
+email_sent = 100
+sign_in_sign_ups = 60

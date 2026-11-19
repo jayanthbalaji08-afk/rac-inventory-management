@@ -50,6 +50,7 @@
 body.intro-playing{overflow:hidden}
 @media (prefers-reduced-motion:reduce){#clubIntroSplash{transition:none}}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div id="clubIntroSplash" role="presentation" aria-label="Robotics and Automation Club introduction">
@@ -109,7 +110,7 @@ body.intro-playing{overflow:hidden}
    <button class="btn btn-primary" type="submit">Sign in <span>→</span></button>
   </form>
   <p id="loginHint" class="small-note" style="text-align:center;margin-top:16px">Use your @kct.ac.in email address.</p>
-  <div id="userAccountActions" class="account-actions"><span>New to the club inventory?</span> <button type="button" class="text-link" onclick="showCreateAccount()">Create an account</button></div>
+  <div id="userAccountActions" class="account-actions"><span>New to the club inventory?</span> <button type="button" class="text-link" onclick="showCreateAccount()">Create an account</button><br><button type="button" class="text-link" onclick="forgotPassword()">Forgot password?</button></div>
   <section id="registerPanel" class="register-panel hidden"><button type="button" class="login-back" onclick="hideCreateAccount()">← Back to sign in</button><h2>Create User Account</h2><p class="small-note">Use your official college email ending in @kct.ac.in.</p>
    <form id="registerForm" onsubmit="registerUser(event)"><div class="form-grid">
     <div class="field full"><label>Full name *</label><input class="input" name="name" required maxlength="100" autocomplete="name"></div>
@@ -121,7 +122,7 @@ body.intro-playing{overflow:hidden}
     <div class="field"><label>Password *</label><input class="input" name="password" type="password" minlength="8" required autocomplete="new-password"></div>
     <div class="field"><label>Confirm password *</label><input class="input" name="confirmPassword" type="password" minlength="8" required autocomplete="new-password"></div>
    </div><button class="btn btn-primary" type="submit" style="width:100%">Create account</button></form>
-   <p class="small-note">Prototype note: account details are stored in this browser only. Email ownership verification requires a backend.</p>
+   <p class="small-note">A confirmation link will be sent to your college email. Confirm it before you sign in.</p>
   </section>
  </div></section>
 </div>
@@ -157,16 +158,12 @@ function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&l
 function fmtDate(d){if(!d)return '—';return new Date(d+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}
 function fmtDateTime(d){return new Date(d).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}
 function idSuffix(prefix,name,collection){let slug=(name||'USER').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,'').slice(0,12)||'USER';let n=1;while(collection.some(x=>x.id===`${prefix}-${slug}-${String(n).padStart(4,'0')}`))n++;return `${prefix}-${slug}-${String(n).padStart(4,'0')}`}
-function toast(msg,type='ok'){const el=document.createElement('div');el.className='toast '+(type==='err'?'err':'ok');el.textContent=msg;document.getElementById('toastArea').appendChild(el);setTimeout(()=>el.remove(),3500)}
-function chooseLoginRole(role){selectedLoginRole=role;document.getElementById('roleChooser').classList.add('hidden');document.getElementById('loginScreen').classList.remove('hidden');document.getElementById('loginTitle').textContent=role==='admin'?'Admin Sign in':'User Sign in';document.getElementById('loginHint').textContent=role==='admin'?'Authorized administrators only.':'Use your @kct.ac.in college email address.';document.getElementById('loginEmail').value='';document.getElementById('loginPassword').value='';document.getElementById('loginPassword').placeholder=role==='admin'?'Enter admin password':'Enter your password';document.getElementById('userAccountActions').classList.toggle('hidden',role==='admin');document.getElementById('registerPanel').classList.add('hidden');document.getElementById('loginForm').classList.remove('hidden');document.getElementById('loginHint').classList.remove('hidden');}
+function toast(msg,type='ok'){const area=document.getElementById('toastArea');[...area.children].forEach(c=>{if(c.textContent===msg)c.remove()});while(area.children.length>=3)area.firstElementChild.remove();const el=document.createElement('div');el.className='toast '+(type==='err'?'err':'ok');el.textContent=msg;area.appendChild(el);setTimeout(()=>el.remove(),4500)}
+function chooseLoginRole(role){selectedLoginRole=role;document.getElementById('roleChooser').classList.add('hidden');document.getElementById('loginScreen').classList.remove('hidden');document.getElementById('loginTitle').textContent=role==='admin'?'Admin Sign in':'User Sign in';document.getElementById('loginHint').textContent=role==='admin'?'Authorized administrators only.':'Use your @kct.ac.in college email address.';document.getElementById('loginEmail').value='';document.getElementById('loginPassword').value='';document.getElementById('loginPassword').placeholder=role==='admin'?'Enter admin password':'Enter your password';document.getElementById('userAccountActions').classList.remove('hidden');document.getElementById('registerPanel').classList.add('hidden');document.getElementById('loginForm').classList.remove('hidden');document.getElementById('loginHint').classList.remove('hidden');}
 function backToRoleChooser(){document.getElementById('loginScreen').classList.add('hidden');document.getElementById('roleChooser').classList.remove('hidden');document.getElementById('loginForm').reset();}
 function showCreateAccount(){if(selectedLoginRole!=='user'){toast('Accounts can only be created for users.','err');return}document.getElementById('loginForm').classList.add('hidden');document.getElementById('loginHint').classList.add('hidden');document.getElementById('userAccountActions').classList.add('hidden');document.getElementById('registerPanel').classList.remove('hidden');}
 function hideCreateAccount(){document.getElementById('registerPanel').classList.add('hidden');document.getElementById('loginForm').classList.remove('hidden');document.getElementById('loginHint').classList.remove('hidden');document.getElementById('userAccountActions').classList.remove('hidden');document.getElementById('registerForm').reset();}
 function registerUser(event){event.preventDefault();if(selectedLoginRole!=='user'){toast('Only user accounts can be registered.','err');return}const f=document.getElementById('registerForm');if(!f.reportValidity())return;const fd=new FormData(f),name=String(fd.get('name')).trim(),email=String(fd.get('email')).trim().toLowerCase(),reg=String(fd.get('reg')).trim().toUpperCase(),department=String(fd.get('department')).trim(),year=String(fd.get('year')),designation=String(fd.get('designation')||'').trim(),phone=String(fd.get('phone')||'').trim(),password=String(fd.get('password')),confirmPassword=String(fd.get('confirmPassword'));if(!/^[a-z0-9.!#$%&'*+\/=?^_`{|}~-]+@kct\.ac\.in$/.test(email)){toast('Email must end with @kct.ac.in.','err');return}if(password!==confirmPassword){toast('Passwords do not match.','err');return}if(db.users.some(u=>String(u.email).toLowerCase()===email)){toast('An account with this email already exists.','err');return}if(db.users.some(u=>String(u.reg||'').toUpperCase()===reg)){toast('This register number is already registered.','err');return}const user={id:'user-'+email,name,email,reg,phone,department,year,designation,role:'user',password,createdAt:new Date().toISOString(),status:'Active'};db.users.push(user);db.wishlists[user.id]=[];addNotification(user.id,'Welcome to Club Inventory','Your account has been created. Browse components and add items to your Wishlist.');logActivity('Account created',`${name} (${email}) created a user account`);saveDB();f.reset();document.getElementById('loginEmail').value=email;document.getElementById('loginPassword').value='';hideCreateAccount();toast('Account created. Sign in using your college email and password.');}
-function login(event){event.preventDefault();const email=document.getElementById('loginEmail').value.trim().toLowerCase();const password=document.getElementById('loginPassword').value;if(!email){toast('Enter your college email.','err');return}if(!/^[a-z0-9.!#$%&'*+\/=?^_`{|}~-]+@kct\.ac\.in$/.test(email)){toast('Use your authorized college email ending in @kct.ac.in.','err');document.getElementById('loginEmail').focus();return}
- if(selectedLoginRole==='admin'){const adminAccounts={'jayanthbalaji.24ec@kct.ac.in':'Jayanth Balaji','jaisurya.24ec@kct.ac.in':'Jaisurya','gokulvasan.24mc@kct.ac.in':'Gokulvasan'};if(!Object.prototype.hasOwnProperty.call(adminAccounts,email)||password!=='Rac@2026'){toast('Invalid administrator email or password.','err');return}if(!db.adminProfiles[email]){showAdminProfileSetup(email,adminAccounts[email]);return}session={id:'admin-'+email,...db.adminProfiles[email],email,role:'admin'};currentPage='adminDashboard';}
- else {const adminOnlyEmails=['jayanthbalaji.24ec@kct.ac.in','jaisurya.24ec@kct.ac.in','gokulvasan.24mc@kct.ac.in'];if(adminOnlyEmails.includes(email)){toast('This email is authorized for Admin Login only. Please return and select Admin Login.','err');return}const user=db.users.find(u=>String(u.email).toLowerCase()===email);if(!user){toast('Account not found. Please create an account first.','err');return}if(user.password!==password){toast('Incorrect password.','err');return}if(user.status==='Pending'){toast('Your account is awaiting admin approval.','err');return}session={...user};delete session.password;if(!db.wishlists[session.id])db.wishlists[session.id]=[];currentPage='dashboard';}
- document.getElementById('roleChooser').classList.add('hidden');document.getElementById('loginScreen').classList.add('hidden');document.getElementById('app').classList.remove('hidden');renderShell();renderPage();toast('Signed in successfully.');}
 
 function showAdminProfileSetup(email,defaultName){
  const profile=db.adminProfiles[email]||{};
@@ -295,7 +292,7 @@ function viewReturn(id){let r=db.returns.find(x=>x.id===id);if(!r)return;openMod
 function renderNotifications(){let rows=db.notifications.filter(n=>n.recipient===session.id||(session.role==='admin'&&n.recipient==='admin'));return `${pageHead('Notifications','Important updates about requests, equipment, and returns.',`<button class="btn btn-light" onclick="markAllRead()">✓ Mark all as read</button>`)}<div class="panel"><div class="panel-head"><div><h2>All notifications</h2><p>${rows.filter(n=>!n.read).length} unread notifications</p></div></div>${rows.length?rows.map(n=>`<div class="notification ${n.read?'':'unread'}"><div class="notif-icon">${n.icon||'♧'}</div><div style="flex:1"><h3>${esc(n.title)}</h3><p>${esc(n.message)}</p><small>${fmtDateTime(n.createdAt)}</small></div><div class="table-actions">${n.relatedId?`<button class="btn btn-light btn-sm" onclick="openRelated('${esc(n.relatedId)}')">View</button>`:''}${!n.read?`<button class="btn btn-light btn-sm" onclick="markRead('${n.id}')">Mark read</button>`:''}</div></div>`).join(''):`<div class="empty"><div class="empty-icon">♧</div><h3>You're all caught up</h3><p>New request and return updates will appear here.</p></div>`}</div>`}
 function markRead(id){let n=db.notifications.find(x=>x.id===id);if(n)n.read=true;saveDB();renderPage();renderShell()}function markAllRead(){db.notifications.filter(n=>n.recipient===session.id||(session.role==='admin'&&n.recipient==='admin')).forEach(n=>n.read=true);saveDB();renderPage();renderShell();toast('All notifications marked as read.')}
 function openRelated(id){closeModal();if(id.startsWith('REQ-')){if(session.role==='admin')navigate('adminRequests');else navigate('requests');setTimeout(()=>viewRequest(id),50)}else if(id.startsWith('RET-')){if(session.role==='admin')navigate('adminReturns');else navigate('returns');setTimeout(()=>viewReturn(id),50)}else if(id.startsWith('BOR-')){navigate(session.role==='admin'?'adminUsers':'borrowings')}else if(id.startsWith('user-')&&session.role==='admin'){viewUserDetails(id)}else navigate('notifications')}
-function renderProfile(){if(session&&session.role==='admin'&&db.adminProfiles[session.email])session={...session,...db.adminProfiles[session.email],email:session.email,role:'admin'};const restriction=session.role==='user'?userRestriction(session.id):null;const restrictionHtml=session.role==='user'?`<div class="notice ${restriction.blocked?'error':isUserRestricted(session.id)?'warning':'success'}"><b>Inventory access:</b> ${restriction.blocked?'Blocked permanently':isUserRestricted(session.id)?'Borrowing suspended until '+fmtDate(restriction.suspendedUntil):'Active'}${restriction.level?`<br><b>Late-return warning level:</b> ${restriction.level}/3`:''}${restriction.level===1?'<br>Return all overdue components within 7 days to avoid a 2-week borrowing suspension.':''}${restriction.level===2&&!restriction.blocked?'<br>Return all overdue components before the suspension ends to avoid being permanently blocked.':''}</div>`:'';return `${pageHead('My Profile','View your account information.') }<div class="panel" style="max-width:780px"><div class="panel-head"><div><h2>Personal information</h2><p>Your account details</p></div><div class="avatar" style="width:48px;height:48px;font-size:15px">${initials(session.name)}</div></div><div class="panel-body">${restrictionHtml}<div class="form-grid"><div class="field"><label>Full name</label><input class="input" value="${esc(session.name)}" readonly></div><div class="field"><label>College email</label><input class="input" value="${esc(session.email)}" readonly></div><div class="field"><label>Contact number</label><input class="input" value="${esc(session.phone||'—')}" readonly></div><div class="field"><label>${session.role==='admin'?'Roll / Register number':'Register number'}</label><input class="input" value="${esc(session.reg||'—')}" readonly></div><div class="field"><label>Department</label><input class="input" value="${esc(session.department||'—')}" readonly></div><div class="field"><label>Designation</label><input class="input" value="${esc(session.designation||'—')}" readonly></div><div class="field"><label>Year of study</label><input class="input" value="${esc(session.year||'—')}" readonly></div><div class="field"><label>Account role</label><input class="input" value="${session.role==='admin'?'Administrator':'User'}" readonly></div></div><button class="btn btn-light" onclick="toast('Connect an authentication backend to enable password changes.')">Change password</button></div></div>`}
+function renderProfile(){if(session&&session.role==='admin'&&db.adminProfiles[session.email])session={...session,...db.adminProfiles[session.email],email:session.email,role:'admin'};const restriction=session.role==='user'?userRestriction(session.id):null;const restrictionHtml=session.role==='user'?`<div class="notice ${restriction.blocked?'error':isUserRestricted(session.id)?'warning':'success'}"><b>Inventory access:</b> ${restriction.blocked?'Blocked permanently':isUserRestricted(session.id)?'Borrowing suspended until '+fmtDate(restriction.suspendedUntil):'Active'}${restriction.level?`<br><b>Late-return warning level:</b> ${restriction.level}/3`:''}${restriction.level===1?'<br>Return all overdue components within 7 days to avoid a 2-week borrowing suspension.':''}${restriction.level===2&&!restriction.blocked?'<br>Return all overdue components before the suspension ends to avoid being permanently blocked.':''}</div>`:'';return `${pageHead('My Profile','View your account information.') }<div class="panel" style="max-width:780px"><div class="panel-head"><div><h2>Personal information</h2><p>Your account details</p></div><div class="avatar" style="width:48px;height:48px;font-size:15px">${initials(session.name)}</div></div><div class="panel-body">${restrictionHtml}<div class="form-grid"><div class="field"><label>Full name</label><input class="input" value="${esc(session.name)}" readonly></div><div class="field"><label>College email</label><input class="input" value="${esc(session.email)}" readonly></div><div class="field"><label>Contact number</label><input class="input" value="${esc(session.phone||'—')}" readonly></div><div class="field"><label>${session.role==='admin'?'Roll / Register number':'Register number'}</label><input class="input" value="${esc(session.reg||'—')}" readonly></div><div class="field"><label>Department</label><input class="input" value="${esc(session.department||'—')}" readonly></div><div class="field"><label>Designation</label><input class="input" value="${esc(session.designation||'—')}" readonly></div><div class="field"><label>Year of study</label><input class="input" value="${esc(session.year||'—')}" readonly></div><div class="field"><label>Account role</label><input class="input" value="${session.role==='admin'?'Administrator':'User'}" readonly></div></div><button class="btn btn-light" onclick="changePassword()">Change password</button></div></div>`}
 function renderAdminDashboard(){let inv=db.inventory,pend=db.requests.filter(r=>r.status==='Pending Approval'),rets=db.returns.filter(r=>OPEN_RETURN.includes(r.status)&&!r.processed),low=inv.filter(i=>i.available<=3);return `${pageHead('Admin overview','Manage your club inventory, requests, and returns from one workspace.',`<button class="btn btn-primary" onclick="navigate('adminInventory');openAddInventory()">＋ Add component</button>`)}<div class="stats">${statCard('Inventory items',inv.length,'▦','Tracked component records')}${statCard('Pending requests',pend.length,'◷','Need your review')}${statCard('Return requests',rets.length,'⟲','Awaiting physical verification')}${statCard('Low stock items',low.length,'⚑','3 or fewer available')}</div><div class="split"><section class="panel"><div class="panel-head"><div><h2>Requests awaiting review</h2><p>Combined requests submitted by users.</p></div><button class="btn btn-light btn-sm" onclick="navigate('adminRequests')">View all</button></div>${pend.length?`<div class="table-wrap"><table><thead><tr><th>Request ID</th><th>User</th><th>Items</th><th>Action</th></tr></thead><tbody>${pend.slice(0,5).map(r=>`<tr><td><strong>${esc(r.id)}</strong></td><td>${esc(r.userName)}</td><td>${r.items.length}</td><td><button class="btn btn-primary btn-sm" onclick="reviewRequest('${r.id}')">Review</button></td></tr>`).join('')}</tbody></table></div>`:`<div class="empty"><div class="empty-icon">✓</div><h3>No pending requests</h3><p>New combined component requests will appear here.</p></div>`}</section><section class="panel"><div class="panel-head"><div><h2>Return requests</h2><p>Verify physical returns before updating stock.</p></div><button class="btn btn-light btn-sm" onclick="navigate('adminReturns')">View all</button></div>${rets.length?`<div class="panel-body">${rets.slice(0,4).map(r=>`<div class="activity"><div class="activity-dot">⟲</div><div style="flex:1"><strong>${esc(r.name)}</strong><p>${esc(r.userName)} · ${r.requestedQuantity} requested · ${esc(r.id)}</p><time>${fmtDateTime(r.createdAt)}</time></div><button class="btn btn-light btn-sm" onclick="reviewReturn('${r.id}')">Review</button></div>`).join('')}</div>`:`<div class="empty"><div class="empty-icon">✓</div><h3>No returns pending</h3><p>Return requests submitted by users will show here.</p></div>`}</section></div><div class="section-title"><h2>Low stock watchlist</h2><span>Items with 3 or fewer available</span></div><div class="panel">${low.length?`<div class="table-wrap"><table><thead><tr><th>Component</th><th>Category</th><th>Total</th><th>Available</th><th>Action</th></tr></thead><tbody>${low.map(i=>`<tr><td><div class="item-cell"><div class="item-thumb orange">${i.icon}</div><strong>${esc(i.name)}</strong></div></td><td>${esc(i.category)}</td><td>${i.total}</td><td>${i.available}</td><td><button class="btn btn-light btn-sm" onclick="editInventory('${i.id}')">Update stock</button></td></tr>`).join('')}</tbody></table></div>`:`<div class="empty"><h3>Stock levels look healthy</h3><p>No components currently meet the low-stock threshold.</p></div>`}</div>`}
 function renderAdminInventory(){let inv=inventoryFiltered();return `${pageHead('Inventory management','Add and update component records. All stock changes are managed by authorized admins.',`<button class="btn btn-primary" onclick="openAddInventory()">＋ Add component</button>`)}<div class="panel"><div class="panel-head"><div><h2>Inventory records</h2><p>${db.inventory.length} component records</p></div><div class="filters"><input class="input filter-input" placeholder="Search inventory..." value="${esc(searchQuery)}" oninput="searchQuery=this.value;renderPage()"><select class="select" onchange="activeCategory=this.value;renderPage()">${['All Components',...new Set(db.inventory.map(i=>i.category))].map(c=>`<option ${activeCategory===c?'selected':''}>${esc(c)}</option>`).join('')}</select></div></div>${inv.length?`<div class="table-wrap"><table><thead><tr><th>Component</th><th>Category</th><th>Total</th><th>Available</th><th>Type</th><th>Location</th><th>Actions</th></tr></thead><tbody>${inv.map(i=>`<tr><td><div class="item-cell"><div class="item-thumb">${i.icon}</div><div><strong>${esc(i.name)}</strong><div style="font-size:9px;color:var(--muted)">${i.id}</div></div></div></td><td>${esc(i.category)}</td><td>${i.total}</td><td><b style="color:${i.available<=3?'#c07800':'#16804d'}">${i.available}</b></td><td>${i.returnable?'Returnable':'Consumable'}</td><td>${esc(i.location||'—')}</td><td><button class="btn btn-light btn-sm" onclick="editInventory('${i.id}')">Edit</button></td></tr>`).join('')}</tbody></table></div>`:`<div class="empty"><h3>No inventory items found</h3><p>Change the filters or add a component.</p></div>`}</div>`}
 function openAddInventory(){openInventoryForm(null)}function editInventory(id){openInventoryForm(db.inventory.find(i=>i.id===id))}
@@ -372,13 +369,236 @@ function renderUserDetailsPage(){const id=selectedUserDetailsId;if(!id)return `$
  const late=bor.filter(b=>b.issued!==false&&b.returnable!==false&&b.outstanding>0&&b.dueDate&&new Date(b.dueDate+'T23:59:59')<new Date()); const restriction=userRestriction(id); const warningHistoryHtml=(restriction.warningHistory||[]).map(w=>`<div class="detail-box"><span>${esc(w.title||('Warning '+w.level))} — ${esc(w.date||'')}</span><strong>${esc(w.message||'')}</strong></div>`).join('');
  const heldB=bor.filter(b=>b.returnable!==false&&b.issued!==false), returned=heldB.filter(b=>b.outstanding===0).length, outstanding=heldB.filter(b=>b.outstanding>0).length, awaiting=bor.filter(b=>b.issued===false).length, pendingRets=rets.filter(r=>OPEN_RETURN.includes(r.status)&&!r.processed).length;
  const activity=[...reqs.map(r=>({date:r.createdAt,type:'Component request',id:r.id,detail:r.items.map(i=>`${i.name} × ${i.requested}`).join(', '),status:r.status})),...bor.map(b=>({date:b.issued===false?(b.approvedAt||''):b.issueDate,type:b.issued===false?'Component approved':'Component issued',id:b.requestId,detail:`${b.name} · ${b.issued===false?'approved':'issued'} ${b.quantity}, outstanding ${b.outstanding}`,status:userBorrowStatus(b)})),...rets.map(r=>({date:r.createdAt,type:'Return request',id:r.id,detail:`${r.name} · requested ${r.requestedQuantity}, confirmed ${r.confirmedQuantity||0}`,status:r.status}))].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
- return `${pageHead('User Profile & Activity','Complete profile, borrowing status, returns, and activity history.',`<button class="btn btn-light" onclick="navigate('adminUsers')">← Back to View Users</button>`)}<div class="detail-list"><div class="detail-box"><span>Full name</span><strong>${esc(u.name)}</strong></div><div class="detail-box"><span>College email</span><strong>${esc(u.email||'Not available in demo')}</strong></div><div class="detail-box"><span>Register number</span><strong>${esc(u.reg||'—')}</strong></div><div class="detail-box"><span>Contact number</span><strong>${esc(u.phone||'—')}</strong></div><div class="detail-box"><span>Department</span><strong>${esc(u.department||'—')}</strong></div><div class="detail-box"><span>Designation</span><strong>${esc(u.designation||'—')}</strong></div><div class="detail-box"><span>Year of study</span><strong>${esc(u.year||'—')}</strong></div><div class="detail-box"><span>Requests submitted</span><strong>${reqs.length}</strong></div><div class="detail-box"><span>Currently borrowed</span><strong>${outstanding}</strong></div><div class="detail-box"><span>Returned borrowings</span><strong>${returned}</strong></div><div class="detail-box"><span>Late returns / overdue</span><strong style="color:${late.length?'#b42334':'#16804a'}">${late.length}</strong></div><div class="detail-box"><span>Return requests</span><strong>${rets.length}</strong></div><div class="detail-box"><span>Approved, awaiting issue</span><strong>${awaiting}</strong></div><div class="detail-box"><span>Return requests pending</span><strong>${pendingRets}</strong></div><div class="detail-box"><span>Late-return warning level</span><strong>${restriction.level}/3</strong></div><div class="detail-box"><span>Inventory access</span><strong style="color:${restriction.blocked?'#b42334':isUserRestricted(id)?'#b77908':'#16804a'}">${restriction.blocked?'Blocked permanently':isUserRestricted(id)?'Suspended until '+fmtDate(restriction.suspendedUntil):'Active'}</strong></div><div class="detail-box"><span>Suspension end date</span><strong>${restriction.suspendedUntil?fmtDate(restriction.suspendedUntil):'—'}</strong></div></div>${restriction.level?`<div class="notice ${restriction.blocked?'error':'warning'}" style="margin-top:15px"><b>Disciplinary record:</b> Warning level ${restriction.level}/3. ${restriction.blocked?'User is permanently blocked from borrowing components.':isUserRestricted(id)?'Borrowing is suspended for 2 weeks.':'No active suspension.'}</div>`:''}${restriction.warningHistory&&restriction.warningHistory.length?`<div class="section-title"><h2>Warning history</h2></div><div class="detail-list">${warningHistoryHtml}</div>`:''}<div class="section-title"><h2>Borrowing status</h2></div>${bor.length?`<div class="table-wrap"><table><thead><tr><th>Component</th><th>Request</th><th>Qty</th><th>Outstanding</th><th>Issue date</th><th>Due date</th><th>Pending return</th><th>Status</th></tr></thead><tbody>${bor.map(b=>`<tr><td>${esc(b.name)}</td><td>${esc(b.requestId||'—')}</td><td>${b.quantity}</td><td>${b.outstanding}</td><td>${b.issueDate?fmtDate(b.issueDate):'—'}</td><td>${b.dueDate?fmtDate(b.dueDate):'—'}</td><td>${pendingReturnQuantity(b.id)||'—'}</td><td>${statusBadge(userBorrowStatus(b))}</td></tr>`).join('')}</tbody></table></div>`:`<div class="empty"><h3>No borrowing records</h3><p>No equipment has been issued to this user.</p></div>`}<div class="section-title"><h2>Return requests</h2><span>${rets.length} records</span></div>${rets.length?`<div class="table-wrap"><table><thead><tr><th>Return ID</th><th>Component</th><th>Requested</th><th>Confirmed</th><th>Condition</th><th>Submitted</th><th>Status</th><th>Action</th></tr></thead><tbody>${rets.map(r=>`<tr><td><strong>${esc(r.id)}</strong></td><td>${esc(r.name)}</td><td>${r.requestedQuantity}</td><td>${r.confirmedQuantity||0}</td><td>${statusBadge(r.condition)}</td><td>${fmtDate(r.createdAt.slice(0,10))}</td><td>${statusBadge(r.status)}</td><td><button class="btn btn-light btn-sm" onclick="reviewReturn('${r.id}')">${!r.processed&&OPEN_RETURN.includes(r.status)?(r.status==='Return Pending'?'Acknowledge':'Approve'):'View'}</button></td></tr>`).join('')}</tbody></table></div>`:`<div class="empty"><h3>No return requests</h3><p>Return requests submitted by this user will appear here.</p></div>`}<div class="section-title"><h2>Full activity history</h2><span>${activity.length} events</span></div>${activity.length?`<div class="table-wrap"><table><thead><tr><th>Date</th><th>Activity</th><th>Reference ID</th><th>Details</th><th>Status</th></tr></thead><tbody>${activity.map(a=>`<tr><td>${a.date?fmtDate(String(a.date).slice(0,10)):'—'}</td><td>${esc(a.type)}</td><td><strong>${esc(a.id||'—')}</strong></td><td>${esc(a.detail)}</td><td>${statusBadge(a.status)}</td></tr>`).join('')}</tbody></table></div>`:`<div class="empty"><h3>No activity yet</h3><p>Requests, issues, and returns will appear here as the user uses the system.</p></div>`}`
+ return `${pageHead('User Profile & Activity','Complete profile, borrowing status, returns, and activity history.',`<div class="table-actions">${restriction.level||restriction.blocked||restriction.suspendedUntil?`<button class="btn btn-danger" onclick="clearRestriction('${id}')">Lift restrictions</button>`:''}<button class="btn btn-light" onclick="navigate('adminUsers')">← Back to View Users</button></div>`)}<div class="detail-list"><div class="detail-box"><span>Full name</span><strong>${esc(u.name)}</strong></div><div class="detail-box"><span>College email</span><strong>${esc(u.email||'Not available in demo')}</strong></div><div class="detail-box"><span>Register number</span><strong>${esc(u.reg||'—')}</strong></div><div class="detail-box"><span>Contact number</span><strong>${esc(u.phone||'—')}</strong></div><div class="detail-box"><span>Department</span><strong>${esc(u.department||'—')}</strong></div><div class="detail-box"><span>Designation</span><strong>${esc(u.designation||'—')}</strong></div><div class="detail-box"><span>Year of study</span><strong>${esc(u.year||'—')}</strong></div><div class="detail-box"><span>Requests submitted</span><strong>${reqs.length}</strong></div><div class="detail-box"><span>Currently borrowed</span><strong>${outstanding}</strong></div><div class="detail-box"><span>Returned borrowings</span><strong>${returned}</strong></div><div class="detail-box"><span>Late returns / overdue</span><strong style="color:${late.length?'#b42334':'#16804a'}">${late.length}</strong></div><div class="detail-box"><span>Return requests</span><strong>${rets.length}</strong></div><div class="detail-box"><span>Approved, awaiting issue</span><strong>${awaiting}</strong></div><div class="detail-box"><span>Return requests pending</span><strong>${pendingRets}</strong></div><div class="detail-box"><span>Late-return warning level</span><strong>${restriction.level}/3</strong></div><div class="detail-box"><span>Inventory access</span><strong style="color:${restriction.blocked?'#b42334':isUserRestricted(id)?'#b77908':'#16804a'}">${restriction.blocked?'Blocked permanently':isUserRestricted(id)?'Suspended until '+fmtDate(restriction.suspendedUntil):'Active'}</strong></div><div class="detail-box"><span>Suspension end date</span><strong>${restriction.suspendedUntil?fmtDate(restriction.suspendedUntil):'—'}</strong></div></div>${restriction.level?`<div class="notice ${restriction.blocked?'error':'warning'}" style="margin-top:15px"><b>Disciplinary record:</b> Warning level ${restriction.level}/3. ${restriction.blocked?'User is permanently blocked from borrowing components.':isUserRestricted(id)?'Borrowing is suspended for 2 weeks.':'No active suspension.'}</div>`:''}${restriction.warningHistory&&restriction.warningHistory.length?`<div class="section-title"><h2>Warning history</h2></div><div class="detail-list">${warningHistoryHtml}</div>`:''}<div class="section-title"><h2>Borrowing status</h2></div>${bor.length?`<div class="table-wrap"><table><thead><tr><th>Component</th><th>Request</th><th>Qty</th><th>Outstanding</th><th>Issue date</th><th>Due date</th><th>Pending return</th><th>Status</th></tr></thead><tbody>${bor.map(b=>`<tr><td>${esc(b.name)}</td><td>${esc(b.requestId||'—')}</td><td>${b.quantity}</td><td>${b.outstanding}</td><td>${b.issueDate?fmtDate(b.issueDate):'—'}</td><td>${b.dueDate?fmtDate(b.dueDate):'—'}</td><td>${pendingReturnQuantity(b.id)||'—'}</td><td>${statusBadge(userBorrowStatus(b))}</td></tr>`).join('')}</tbody></table></div>`:`<div class="empty"><h3>No borrowing records</h3><p>No equipment has been issued to this user.</p></div>`}<div class="section-title"><h2>Return requests</h2><span>${rets.length} records</span></div>${rets.length?`<div class="table-wrap"><table><thead><tr><th>Return ID</th><th>Component</th><th>Requested</th><th>Confirmed</th><th>Condition</th><th>Submitted</th><th>Status</th><th>Action</th></tr></thead><tbody>${rets.map(r=>`<tr><td><strong>${esc(r.id)}</strong></td><td>${esc(r.name)}</td><td>${r.requestedQuantity}</td><td>${r.confirmedQuantity||0}</td><td>${statusBadge(r.condition)}</td><td>${fmtDate(r.createdAt.slice(0,10))}</td><td>${statusBadge(r.status)}</td><td><button class="btn btn-light btn-sm" onclick="reviewReturn('${r.id}')">${!r.processed&&OPEN_RETURN.includes(r.status)?(r.status==='Return Pending'?'Acknowledge':'Approve'):'View'}</button></td></tr>`).join('')}</tbody></table></div>`:`<div class="empty"><h3>No return requests</h3><p>Return requests submitted by this user will appear here.</p></div>`}<div class="section-title"><h2>Full activity history</h2><span>${activity.length} events</span></div>${activity.length?`<div class="table-wrap"><table><thead><tr><th>Date</th><th>Activity</th><th>Reference ID</th><th>Details</th><th>Status</th></tr></thead><tbody>${activity.map(a=>`<tr><td>${a.date?fmtDate(String(a.date).slice(0,10)):'—'}</td><td>${esc(a.type)}</td><td><strong>${esc(a.id||'—')}</strong></td><td>${esc(a.detail)}</td><td>${statusBadge(a.status)}</td></tr>`).join('')}</tbody></table></div>`:`<div class="empty"><h3>No activity yet</h3><p>Requests, issues, and returns will appear here as the user uses the system.</p></div>`}`
 }
 function userRequestsFor(id){return db.requests.filter(r=>r.userId===id)}
 function openModal(title,body,footer){document.getElementById('modalRoot').innerHTML=`<div class="modal-backdrop" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="modal-head"><h2>${title}</h2><button class="close" onclick="closeModal()">×</button></div><div class="modal-body">${body}</div><div class="modal-foot">${footer}</div></div></div>`}
 function closeModal(){document.getElementById('modalRoot').innerHTML=''}
 function viewComponent(id){let i=db.inventory.find(x=>x.id===id);if(!i)return;openModal('Component details',`<div style="display:flex;gap:16px;align-items:flex-start"><div class="item-art art${i.art%4+1}" style="height:125px;width:125px;min-width:125px;border-radius:13px;font-size:42px">${i.icon}</div><div><div class="item-meta">${esc(i.id)} · ${esc(i.category)}</div><h2 style="font-size:18px;margin:8px 0">${esc(i.name)}</h2><p class="small-note">${esc(i.desc)}</p>${statusBadge(i.available>0?'In Stock':'Out of Stock')}</div></div><div class="divider"></div><div class="detail-list"><div class="detail-box"><span>Total quantity</span><strong>${i.total}</strong></div><div class="detail-box"><span>Available quantity</span><strong>${i.available}</strong></div><div class="detail-box"><span>Storage location</span><strong>${esc(i.location||'—')}</strong></div><div class="detail-box"><span>Item type</span><strong>${i.returnable?'Returnable':'Consumable'}</strong></div></div><div class="field" style="margin-top:15px"><label>Datasheet / reference</label><div class="small-note">${esc(i.datasheet||'No datasheet has been added.')}</div></div>`,`<button class="btn btn-light" onclick="closeModal()">Close</button><button class="btn btn-primary" onclick="closeModal();addWishlist('${i.id}')" ${i.available<=0?'disabled':''}>♡ Add to Wishlist</button>`)}
-loadDB();backfillApprovedBorrowings();document.getElementById('loginForm').addEventListener('submit',login);
+db=freshDB();db.inventory=[];document.getElementById('loginForm').addEventListener('submit',e=>login(e));
+</script>
+<script>
+/* =====================================================================
+   Supabase backend layer
+   Replaces the browser-only (localStorage) data functions above with
+   real database calls. The screens and renderers are unchanged.
+   ===================================================================== */
+const SUPABASE_URL='https://iycfmnfinhrtdvwtcypl.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml5Y2ZtbmZpbmhydGR2d3RjeXBsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ5NzA5MzIsImV4cCI6MjExMDU0NjkzMn0.TlKX1pCpoYsPHVIRi8LWEcc9rvPx9x2MFU5W5v2p26o';
+const sb=(window.supabase&&/^https:\/\/.+\.supabase\.co/.test(SUPABASE_URL))?window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY):null;
+let pollTimer=null;
+
+/* ---------- helpers ---------- */
+function backendReady(){if(!sb){toast('Backend not configured. Add your Supabase URL and anon key at the top of the backend script.','err');return false}return true}
+function friendly(e){const m=(e&&e.message)||String(e||'');
+ if(/Invalid login credentials/i.test(m))return 'Incorrect email or password.';
+ if(/Email not confirmed/i.test(m))return 'Please confirm your email first. Check your @kct.ac.in inbox for the confirmation link.';
+ if(/rate limit|too many/i.test(m))return 'Too many attempts. Please wait a few minutes and try again.';
+ if(/Failed to fetch|NetworkError|Load failed/i.test(m))return 'Cannot reach the server. Check your internet connection.';
+ if(/Database error saving new user/i.test(m))return 'Could not create the account. The email or register number may already be registered, or the email is not a valid @kct.ac.in address.';
+ return m}
+async function rpc(fn,args){const {data,error}=await sb.rpc(fn,args||{});if(error)throw error;return data}
+const dstr=v=>v?String(v).slice(0,10):'';
+function localISO(ts){if(!ts)return '';const x=new Date(ts),p=n=>String(n).padStart(2,'0');return x.getFullYear()+'-'+p(x.getMonth()+1)+'-'+p(x.getDate())+'T'+p(x.getHours())+':'+p(x.getMinutes())+':'+p(x.getSeconds())}
+function mapProfile(p){return {id:p.id,name:p.name,email:p.email,reg:p.reg,phone:p.phone||'',department:p.department||'',year:p.year||'',designation:p.designation||'',role:p.role,status:p.status||'Active',lateReturnLevel:p.late_return_level||0,lastWarningAt:dstr(p.last_warning_at),suspendedUntil:dstr(p.suspended_until),inventoryBlocked:!!p.inventory_blocked,warningHistory:Array.isArray(p.warning_history)?p.warning_history:[],createdAt:localISO(p.created_at)}}
+
+/* ---------- data loading (server -> the same db shape the screens already use) ---------- */
+async function reloadData(){
+ const sel=t=>sb.from(t).select('*');
+ const res=await Promise.all([sel('inventory').order('id'),sel('wishlist_items'),sel('profiles'),sel('requests').order('created_at',{ascending:false}),sel('request_items').order('idx'),sel('borrowings').order('approved_at',{ascending:false}),sel('returns').order('created_at',{ascending:false}),sel('notifications').order('created_at',{ascending:false}).limit(300)]);
+ for(const r of res)if(r.error)throw r.error;
+ const [inv,wl,prof,req,ri,bor,ret,not]=res.map(r=>r.data||[]);
+ const itemsBy={};ri.forEach(i=>{(itemsBy[i.request_id]=itemsBy[i.request_id]||[]).push({componentId:i.component_id,name:i.name,requested:i.requested,approved:i.approved,issued:i.issued,status:i.status})});
+ const own=prof.find(p=>p.id===session.id);
+ if(own)session={...session,...mapProfile(own)};
+ db.adminProfiles={};
+ db.inventory=inv.map(i=>({id:i.id,name:i.name,category:i.category,icon:i.icon||'▦',desc:i.description||'',total:i.total,available:i.available,location:i.location||'',datasheet:i.datasheet||'',returnable:!!i.returnable,art:i.art||0}));
+ db.wishlists={[session.id]:wl.map(w=>({componentId:w.component_id,quantity:w.quantity}))};
+ db.users=(session.role==='admin'?prof.filter(p=>p.role!=='admin'):prof.filter(p=>p.id===session.id)).map(mapProfile);
+ db.requests=req.map(r=>({id:r.id,userId:r.user_id,userName:r.user_name,email:r.email||'',reg:r.reg||'',project:r.project,purpose:r.purpose,requiredDate:dstr(r.required_date),notes:r.notes||'',status:r.status,adminRemarks:r.admin_remarks||'',approvedBy:r.approved_by||'',approvedByEmail:r.approved_by_email||'',decisionAt:localISO(r.decision_at),createdAt:localISO(r.created_at),items:itemsBy[r.id]||[]}));
+ db.borrowings=bor.map(b=>({id:b.id,requestId:b.request_id,userId:b.user_id,userName:b.user_name,componentId:b.component_id,name:b.name,quantity:b.quantity,outstanding:b.outstanding,issueDate:dstr(b.issue_date),dueDate:dstr(b.due_date),status:b.status,issued:!!b.issued,returnable:!!b.returnable,approvedAt:localISO(b.approved_at),issuedAt:localISO(b.issued_at)}));
+ db.returns=ret.map(r=>({id:r.id,userId:r.user_id,userName:r.user_name,email:r.email||'',borrowingId:r.borrowing_id,requestId:r.request_id||'',componentId:r.component_id,name:r.name,requestedQuantity:r.requested_quantity,confirmedQuantity:r.confirmed_quantity,condition:r.condition,notes:r.notes||'',status:r.status,adminRemarks:r.admin_remarks||'',processed:!!r.processed,acknowledgedBy:r.acknowledged_by||'',acknowledgedAt:localISO(r.acknowledged_at),createdAt:localISO(r.created_at)}));
+ db.notifications=not.map(n=>({id:n.id,recipient:n.recipient,title:n.title,message:n.message,relatedId:n.related_id||'',icon:n.icon||'♧',read:!!n.read,createdAt:localISO(n.created_at)}));
+}
+function loadDB(){if(!db){db=freshDB();db.inventory=[]}}
+function saveDB(){/* the database is the source of truth now */}
+function checkOverdueBorrowings(){/* done on the server every day */}
+function backfillApprovedBorrowings(){}
+
+/* ---------- session ---------- */
+function showApp(){['roleChooser','loginScreen'].forEach(i=>document.getElementById(i).classList.add('hidden'));document.getElementById('app').classList.remove('hidden')}
+async function fetchOwnProfile(uid){const {data,error}=await sb.from('profiles').select('*').eq('id',uid).maybeSingle();if(error)throw error;return data}
+async function enterApp(p){
+ session=mapProfile(p);
+ await reloadData();
+ currentPage=session.role==='admin'?'adminDashboard':'dashboard';
+ showApp();renderShell();renderPage();startPolling();
+}
+function startPolling(){clearInterval(pollTimer);pollTimer=setInterval(async()=>{
+ if(!session||document.hidden)return;
+ try{await reloadData();const tag=(document.activeElement&&document.activeElement.tagName)||'';
+  const busy=document.getElementById('modalRoot').innerHTML.trim()!==''||/INPUT|TEXTAREA|SELECT/.test(tag);
+  if(busy)renderShell();else renderPage()}catch(e){}},30000)}
+async function restoreSession(){
+ if(!sb)return;
+ try{const {data}=await sb.auth.getSession();if(!data||!data.session)return;const p=await fetchOwnProfile(data.session.user.id);if(p)await enterApp(p)}catch(e){}
+}
+async function login(event){
+ event.preventDefault();if(!backendReady())return;
+ const email=document.getElementById('loginEmail').value.trim().toLowerCase(),password=document.getElementById('loginPassword').value;
+ if(!email){toast('Enter your college email.','err');return}
+ if(!/^[a-z0-9.!#$%&'*+\/=?^_`{|}~-]+@kct\.ac\.in$/.test(email)){toast('Use your authorized college email ending in @kct.ac.in.','err');document.getElementById('loginEmail').focus();return}
+ const btn=document.querySelector('#loginForm button[type=submit]');if(btn)btn.disabled=true;
+ try{
+  const {data,error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;
+  const p=await fetchOwnProfile(data.user.id);
+  if(!p){await sb.auth.signOut();toast('No profile found for this account.','err');return}
+  if(selectedLoginRole==='admin'&&p.role!=='admin'){await sb.auth.signOut();toast('This account is not authorized as an administrator.','err');return}
+  if(selectedLoginRole==='user'&&p.role==='admin'){await sb.auth.signOut();toast('This email is authorized for Admin Login only. Please return and select Admin Login.','err');return}
+  await enterApp(p);toast('Signed in successfully.');
+ }catch(e){toast(friendly(e),'err')}finally{if(btn)btn.disabled=false}
+}
+async function logout(){
+ clearInterval(pollTimer);try{if(sb)await sb.auth.signOut()}catch(e){}
+ session=null;db=freshDB();db.inventory=[];
+ document.getElementById('app').classList.add('hidden');document.getElementById('loginScreen').classList.add('hidden');document.getElementById('roleChooser').classList.remove('hidden');document.getElementById('pageContent').innerHTML='';
+}
+function showCreateAccount(){document.getElementById('loginForm').classList.add('hidden');document.getElementById('loginHint').classList.add('hidden');document.getElementById('userAccountActions').classList.add('hidden');document.getElementById('registerPanel').classList.remove('hidden')}
+async function registerUser(event){
+ event.preventDefault();if(!backendReady())return;
+ const f=document.getElementById('registerForm');if(!f.reportValidity())return;
+ const fd=new FormData(f),name=String(fd.get('name')).trim(),email=String(fd.get('email')).trim().toLowerCase(),reg=String(fd.get('reg')).trim().toUpperCase(),department=String(fd.get('department')).trim(),year=String(fd.get('year')),designation=String(fd.get('designation')||'').trim(),phone=String(fd.get('phone')||'').trim(),password=String(fd.get('password')),confirmPassword=String(fd.get('confirmPassword'));
+ if(!/^[a-z0-9.!#$%&'*+\/=?^_`{|}~-]+@kct\.ac\.in$/.test(email)){toast('Email must end with @kct.ac.in.','err');return}
+ if(password!==confirmPassword){toast('Passwords do not match.','err');return}
+ const btn=f.querySelector('button[type=submit]');if(btn){if(btn.disabled)return;btn.disabled=true}
+ try{
+  const {data,error}=await sb.auth.signUp({email,password,options:{data:{name,reg,phone,department,year,designation},emailRedirectTo:location.origin+location.pathname}});
+  if(error)throw error;
+  f.reset();document.getElementById('loginEmail').value=email;document.getElementById('loginPassword').value='';hideCreateAccount();
+  toast(data&&data.session?'Account created. You can sign in now.':'Account created. Open the confirmation email sent to your @kct.ac.in address, then sign in.');
+ }catch(e){toast(friendly(e),'err')}finally{if(btn)btn.disabled=false}
+}
+async function forgotPassword(){
+ if(!backendReady())return;
+ const email=document.getElementById('loginEmail').value.trim().toLowerCase();
+ if(!email){toast('Enter your college email above first.','err');return}
+ const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+ if(error)toast(friendly(error),'err');else toast('If this email is registered, a password reset link has been sent.');
+}
+async function changePassword(){
+ if(!backendReady()||!session)return;
+ const {error}=await sb.auth.resetPasswordForEmail(session.email,{redirectTo:location.origin+location.pathname});
+ if(error)toast(friendly(error),'err');else toast('A password reset link has been sent to '+session.email+'.');
+}
+function showNewPasswordModal(){openModal('Set a new password',`<form id="newPwForm"><div class="field"><label>New password *</label><input class="input" name="p1" type="password" minlength="8" required autocomplete="new-password"></div><div class="field"><label>Confirm password *</label><input class="input" name="p2" type="password" minlength="8" required autocomplete="new-password"></div></form>`,`<button class="btn btn-primary" onclick="saveNewPassword()">Save password</button>`)}
+async function saveNewPassword(){
+ const f=document.getElementById('newPwForm');if(!f.reportValidity())return;const fd=new FormData(f);
+ if(fd.get('p1')!==fd.get('p2')){toast('Passwords do not match.','err');return}
+ const {error}=await sb.auth.updateUser({password:String(fd.get('p1'))});
+ if(error){toast(friendly(error),'err');return}closeModal();toast('Password updated.');
+}
+
+/* ---------- wishlist (own rows only) ---------- */
+async function addWishlist(id){
+ const i=db.inventory.find(x=>x.id===id);if(!i||i.available<=0){toast('This component is currently unavailable.','err');return}
+ try{const w=wishlist(),ex=w.find(x=>x.componentId===id),qn=ex?Math.min(ex.quantity+1,i.available):1;
+  const {error}=await sb.from('wishlist_items').upsert({user_id:session.id,component_id:id,quantity:qn},{onConflict:'user_id,component_id'});if(error)throw error;
+  if(ex)ex.quantity=qn;else w.push({componentId:id,quantity:qn});renderShell();renderPage();toast('Added to Wishlist.')}catch(e){toast(friendly(e),'err')}
+}
+async function removeWishlist(id){
+ try{const {error}=await sb.from('wishlist_items').delete().eq('user_id',session.id).eq('component_id',id);if(error)throw error;
+  db.wishlists[session.id]=wishlist().filter(x=>x.componentId!==id);renderPage();renderShell();toast('Removed from Wishlist.')}catch(e){toast(friendly(e),'err')}
+}
+async function setWishQty(id,target){
+ const row=wishlist().find(x=>x.componentId===id),item=db.inventory.find(x=>x.id===id);if(!row)return;
+ const qn=Math.max(1,Math.min(item?.available||1,target));
+ try{const {error}=await sb.from('wishlist_items').update({quantity:qn}).eq('user_id',session.id).eq('component_id',id);if(error)throw error;row.quantity=qn;renderPage()}catch(e){toast(friendly(e),'err')}
+}
+function changeQty(id,delta){const row=wishlist().find(x=>x.componentId===id);if(row)setWishQty(id,row.quantity+delta)}
+function setQty(id,val){setWishQty(id,Number(val)||1)}
+
+/* ---------- requests ---------- */
+async function submitCombinedRequest(){
+ if(session.role==='user'&&isUserRestricted(session.id)){toast(restrictionMessage(session.id),'err');closeModal();return}
+ const form=document.getElementById('requestForm');if(!form.reportValidity())return;const fd=new FormData(form);
+ try{await rpc('submit_request',{p_project:fd.get('project'),p_purpose:fd.get('purpose'),p_required_date:fd.get('requiredDate'),p_notes:fd.get('notes')||''});
+  await reloadData();closeModal();navigate('requests');toast('Combined request submitted successfully.')}catch(e){toast(friendly(e),'err')}
+}
+async function cancelRequest(id){
+ if(!confirm('Cancel request '+id+'?'))return;
+ try{await rpc('cancel_request',{p_id:id});await reloadData();renderPage();toast('Request cancelled.')}catch(e){toast(friendly(e),'err')}
+}
+async function decideRequest(id,action){
+ const remarks=document.getElementById('adminRemarks')?.value.trim()||'';
+ const quantities=[...document.querySelectorAll('.approve-qty')].map(i=>({idx:Number(i.dataset.index),qty:Number(i.value)}));
+ try{await rpc('decide_request',{p_id:id,p_action:action,p_remarks:remarks,p_quantities:quantities});await reloadData();closeModal();renderPage();toast('Request decision saved.')}catch(e){toast(friendly(e),'err')}
+}
+async function saveIssue(){
+ const f=document.getElementById('issueForm');if(!f.reportValidity())return;const fd=new FormData(f);
+ const quantities=[...document.querySelectorAll('.issue-qty')].map(i=>({idx:Number(i.dataset.index),qty:Number(i.value)}));
+ if(!quantities.some(x=>x.qty>0)){toast('Enter at least one quantity to issue.','err');return}
+ try{await rpc('record_issue',{p_request_id:fd.get('requestId'),p_issue_date:fd.get('issueDate'),p_due_date:fd.get('dueDate')||null,p_quantities:quantities});await reloadData();closeModal();renderPage();toast('Physical issuance recorded and stock updated.')}catch(e){toast(friendly(e),'err')}
+}
+
+/* ---------- returns ---------- */
+async function submitReturn(){
+ const f=document.getElementById('returnForm');if(!f.reportValidity())return;const fd=new FormData(f);
+ try{await rpc('submit_return',{p_items:[{borrowing_id:fd.get('borrowingId'),qty:Number(fd.get('quantity')),condition:fd.get('condition')}],p_notes:(fd.get('notes')||'').trim()});
+  await reloadData();closeModal();navigate('returns');toast('Return request submitted. The admin has been notified.')}catch(e){toast(friendly(e),'err')}
+}
+async function submitRequestReturn(){
+ const items=[];
+ for(const el of [...document.querySelectorAll('#reqReturnForm .rr-qty')]){const q=Number(el.value);if(!q)continue;items.push({borrowing_id:el.dataset.bid,qty:q,condition:el.closest('tr').querySelector('.rr-cond').value})}
+ if(!items.length){toast('Enter a quantity for at least one component.','err');return}
+ const notes=(document.getElementById('rrNotes')?.value||'').trim();
+ try{await rpc('submit_return',{p_items:items,p_notes:notes});await reloadData();closeModal();navigate('returns');toast(items.length+' return request(s) submitted. The admin has been notified.')}catch(e){toast(friendly(e),'err')}
+}
+async function acknowledgeReturn(id){
+ try{await rpc('acknowledge_return',{p_id:id});await reloadData();closeModal();renderPage();toast('Return request acknowledged. Verify the item to approve the return.');setTimeout(()=>reviewReturn(id),50)}catch(e){toast(friendly(e),'err')}
+}
+async function confirmReturn(id){
+ const f=document.getElementById('verifyReturnForm');if(!f||!f.reportValidity())return;const fd=new FormData(f);
+ try{await rpc('confirm_return',{p_id:id,p_received:Number(fd.get('received')),p_condition:fd.get('condition'),p_remarks:(fd.get('remarks')||'').trim()});
+  await reloadData();closeModal();renderPage();toast('Return approved. Inventory updated according to condition.')}catch(e){toast(friendly(e),'err')}
+}
+async function clearRestriction(userId){
+ if(!confirm('Lift all late-return warnings, the suspension and any block for this user?'))return;
+ try{await rpc('lift_restrictions',{p_user:userId});await reloadData();renderPage();toast('Restrictions lifted. The user has been notified.')}catch(e){toast(friendly(e),'err')}
+}
+
+/* ---------- inventory (admins only; enforced by the database) ---------- */
+async function saveInventoryForm(){
+ const f=document.getElementById('inventoryForm');if(!f.reportValidity())return;
+ const d=new FormData(f),total=Number(d.get('total')),available=Number(d.get('available'));
+ if(available>total){toast('Available quantity cannot exceed total quantity.','err');return}
+ const id=d.get('id');
+ const row={name:d.get('name').trim(),category:d.get('category').trim(),icon:d.get('icon')||'▦',description:d.get('desc').trim(),total,available,location:d.get('location').trim(),datasheet:d.get('datasheet').trim(),returnable:d.get('returnable')==='true'};
+ try{
+  if(id){const {error}=await sb.from('inventory').update(row).eq('id',id);if(error)throw error;toast('Component updated.')}
+  else{const newId='CMP-'+String(Math.max(0,...db.inventory.map(i=>Number(i.id.split('-')[1])||0))+1).padStart(4,'0');const {error}=await sb.from('inventory').insert({id:newId,...row,art:db.inventory.length%4});if(error)throw error;toast('Component added to inventory.')}
+  await reloadData();closeModal();renderPage();
+ }catch(e){toast(friendly(e),'err')}
+}
+
+/* ---------- notifications ---------- */
+async function markRead(id){
+ try{const {error}=await sb.from('notifications').update({read:true}).eq('id',id);if(error)throw error;const n=db.notifications.find(x=>x.id===id);if(n)n.read=true;renderPage();renderShell()}catch(e){toast(friendly(e),'err')}
+}
+async function markAllRead(){
+ const ids=db.notifications.filter(n=>(n.recipient===session.id||(session.role==='admin'&&n.recipient==='admin'))&&!n.read).map(n=>n.id);if(!ids.length)return;
+ try{const {error}=await sb.from('notifications').update({read:true}).in('id',ids);if(error)throw error;db.notifications.forEach(n=>{if(ids.includes(n.id))n.read=true});renderPage();renderShell();toast('All notifications marked as read.')}catch(e){toast(friendly(e),'err')}
+}
+function openRelated(id){closeModal();
+ if(id.startsWith('REQ-')){if(session.role==='admin')navigate('adminRequests');else navigate('requests');setTimeout(()=>viewRequest(id),50)}
+ else if(id.startsWith('RET-')){if(session.role==='admin')navigate('adminReturns');else navigate('returns');setTimeout(()=>viewReturn(id),50)}
+ else if(id.startsWith('BOR-')){navigate(session.role==='admin'?'adminUsers':'borrowings')}
+ else if(id.startsWith('USR-')&&session.role==='admin'){viewUserDetails(id.slice(4))}
+ else navigate('notifications')}
+
+/* ---------- start-up ---------- */
+if(sb){sb.auth.onAuthStateChange(ev=>{if(ev==='PASSWORD_RECOVERY')setTimeout(showNewPasswordModal,400)})}
+restoreSession();
+
 </script>
 </body>
 </html>
