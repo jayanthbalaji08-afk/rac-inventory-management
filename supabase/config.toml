@@ -4,8 +4,8 @@
 project_id = "rac-inventory"
 
 [auth]
-site_url = "https://effulgent-starburst-7588dc.netlify.app"
-additional_redirect_urls = ["https://effulgent-starburst-7588dc.netlify.app", "https://effulgent-starburst-7588dc.netlify.app/**"]
+site_url = "https://rac-inventory-management.netlify.app"
+additional_redirect_urls = ["https://rac-inventory-management.netlify.app", "https://rac-inventory-management.netlify.app/**"]
 
 [auth.email]
 enabled = true

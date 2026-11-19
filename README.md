@@ -2,7 +2,7 @@
 
 Component inventory portal for the Robotics and Automation Club, Kumaraguru College.
 
-**Live site:** https://effulgent-starburst-7588dc.netlify.app/
+**Live site:** https://rac-inventory-management.netlify.app/
 
 The website is `index.html` at the root of this repo (plus the logos and intro video). The backend is built on **[Supabase](https://github.com/supabase/supabase)** (open source:
 PostgreSQL + Auth + Edge Functions). There is no separate server to run. The browser talks to Supabase directly,
